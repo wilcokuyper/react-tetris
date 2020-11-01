@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { size } from '../../core/constants';
 import board from '../../core/board';
 import ScoreContext from '../../contexts/ScoreContext';
@@ -9,7 +9,6 @@ const Board = props => {
     let timer = {
         start: 0,
         elapsed: 0,
-        speed: 100,
     };
 
     let level = useRef(1);
@@ -17,7 +16,8 @@ const Board = props => {
     const canvasRef = useRef(null);
 
     const {score, setScore} = useContext(ScoreContext);
-
+    const [linesCleared, setLinesCleared] = useState(0);
+    
     useEffect(() => {
         document.addEventListener('keydown', handleKeyPress);
     
@@ -42,10 +42,11 @@ const Board = props => {
     }, []);
 
     useEffect(() => {
-        if (score >= level.current * 1000) {
+        if (linesCleared >= 10) {
+            setLinesCleared(0);
             level.current++;
         }
-    }, [score]);
+    }, [linesCleared]);
 
     const handleUpdateScore = rowsCleared => {
         const multipliers = {
@@ -54,7 +55,8 @@ const Board = props => {
             3: 500,
             4: 800,
         };
-        
+
+        setLinesCleared(linesCleared => linesCleared + rowsCleared);
         setScore(score => score + multipliers[rowsCleared] * level.current); 
     }
 
@@ -65,9 +67,31 @@ const Board = props => {
         gameBoard.handleKeyPress(e.keyCode);
     };
 
+    const getCutoff = () => {
+        const speeds = [
+            0.01667,
+            0.021017,
+            0.026977,
+            0.035256,
+            0.04693,
+            0.06361,
+            0.0879,
+            0.1236,
+            0.1775,
+            0.2598,
+            0.388,
+            0.59,
+            0.92,
+            1.46,
+            2.36,
+        ];
+
+        return 1 / speeds[level.current - 1];
+    }
+
     const play = (ctx, frame) => {
         timer.elapsed = frame - timer.start;
-        const cutoff = (timer.speed - (level.current - 1) * 10);
+        const cutoff = getCutoff();
         if (timer.elapsed >= cutoff) {
             timer.start = frame;
             if (!gameBoard.dropPiece()) {
