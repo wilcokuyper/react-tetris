@@ -12,9 +12,40 @@ const Board = props => {
         speed: 100,
     };
 
-    let level = 1;
+    let level = useRef(1);
+
+    const canvasRef = useRef(null);
 
     const {score, setScore} = useContext(ScoreContext);
+
+    useEffect(() => {
+        document.addEventListener('keydown', handleKeyPress);
+    
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+
+        let frame = 0;
+
+        const render = () => {
+            frame++;
+            draw(ctx, frame);
+            requestedAnimationFrame = window.requestAnimationFrame(render);
+        }
+    
+        render();
+
+        return () => {
+            window.cancelAnimationFrame(requestedAnimationFrame);
+            requestedAnimationFrame = null;
+            document.removeEventListener('keydown', handleKeyPress);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (score >= level.current * 1000) {
+            level.current++;
+        }
+    }, [score]);
 
     const handleUpdateScore = rowsCleared => {
         const multipliers = {
@@ -24,7 +55,7 @@ const Board = props => {
             4: 800,
         };
         
-        setScore(score => score + multipliers[rowsCleared] * level); 
+        setScore(score => score + multipliers[rowsCleared] * level.current); 
     }
 
     const gameBoard = new board(handleUpdateScore);
@@ -36,9 +67,8 @@ const Board = props => {
 
     const play = (ctx, frame) => {
         timer.elapsed = frame - timer.start;
-        const cutoff = (timer.speed - (level - 1) * 10);
+        const cutoff = (timer.speed - (level.current - 1) * 10);
         if (timer.elapsed >= cutoff) {
-            console.log(level);
             timer.start = frame;
             if (!gameBoard.dropPiece()) {
                 gameOver(ctx);
@@ -66,39 +96,6 @@ const Board = props => {
             play(ctx, frame);
         }
     }
-
-    const canvasRef = useRef(null);
-
-    useEffect(() => {
-        document.addEventListener('keydown', handleKeyPress);
-    
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-
-        let frame = 0;
-
-        const render = () => {
-            frame++;
-            draw(ctx, frame);
-            requestedAnimationFrame = window.requestAnimationFrame(render);
-        }
-    
-        render();
-
-        return () => {
-            window.cancelAnimationFrame(requestedAnimationFrame);
-            requestedAnimationFrame = null;
-            document.removeEventListener('keydown', handleKeyPress);
-        }
-    }, []);
-
-    useEffect(() => {
-        console.log(score, level);
-        if (score >= level * 1000) {
-            level++;
-            console.log(level);
-        }
-    }, [score]);
 
     return (
         <canvas
